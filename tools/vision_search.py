@@ -11,6 +11,7 @@ from functools import wraps
 import json
 import dotenv
 
+from utils.cache_utils import cache_response
 
 dotenv.load_dotenv()
 
@@ -57,6 +58,8 @@ def download_and_encode_image(image_url, max_image=512):
     else:
         raise Exception(f"Failed to download image: HTTP status code {response.status_code}")
 
+
+@cache_response()
 def vision_api_request(image_url, model="gpt-4-vision-preview",prompt='Extract the question as it is in the image, only return the question without any other text'):
     """
     Makes a vision API request using the specified model.

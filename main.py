@@ -214,6 +214,11 @@ async def search_youtube_for_math_videos(math_question: MathQuestion):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.delete("/cache/")
+async def clear_cache():
+    cache.clear()
+    return {"message": "Cache cleared"}
+
 # @app.post("/yt/")
 # async def search_youtube_for_math_videos(math_question: MathQuestion):
 #     try:

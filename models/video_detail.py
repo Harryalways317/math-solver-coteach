@@ -7,3 +7,8 @@ class VideoDetail(BaseModel):
     title: str = Field(..., description="The title of the video")
     description: str = Field(..., description="The description of the video")
     author: str = Field(..., description="The title of the channel that published the video")
+
+class Question(BaseModel):
+    question: str = Field(..., description="The question to be asked")
+    is_question: bool = Field(..., description="Is the input a question related to math or not")
+

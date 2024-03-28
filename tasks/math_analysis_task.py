@@ -1,7 +1,7 @@
 from textwrap import dedent
 from crewai import Task
 
-from models.video_detail import VideoDetail
+from models.video_detail import VideoDetail, Question
 
 
 class MathQuestionSearchTask:
@@ -13,12 +13,14 @@ class MathQuestionSearchTask:
                 Objective: Transform the provided math question into a search query optimized for YouTube. 
                 If the question provided is not a math question but a doubt or help, analyse that and provide a search query that can help the user to find the answer.
                 if the equations provided are incomplete or incorrectly formatted, try to generated the best one possible.
-                If it is off topic then tell the user it is off topic
+                If it is off topic or conversational reply then return back the question that you got exactly without change
+                
                 The query should be clear, concise, and designed to return relevant educational content that answers the question.
                 Math Question: {math_question}
                 """),
             agent=agent,
-            expected_output="A string representing the YouTube search query.",
+            expected_output="A JSON with weather the question is a math question and the generated representation.",
+            output_json=Question,
             verbose=True
         )
 class FetchYouTubeLinksTask:

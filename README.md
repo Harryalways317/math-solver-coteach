@@ -4,11 +4,11 @@ Build a chatbot API that is able to ingest images or text by a user. The chatbot
 
 ### Tech Stack 💻
 
-Python
-Fast API
-Crew AI (Simple Orchestration)
-Youtube API (Retriving Videos)
-Vision GPT API (Analyzing the text in images) -> (if low accuracy is fine, we can use OCR and then ingest text to GPT)
+- Python
+- Fast API
+- Crew AI (Simple Orchestration)
+- Youtube API (Retriving Videos)
+- Vision GPT API (Analyzing the text in images) -> (if low accuracy is fine, we can use OCR and then ingest text to GPT)
 
 ### Example Responses
 
@@ -34,7 +34,7 @@ curl --location 'https://math-solver-coteach-production.up.railway.app/search_yo
 }
 ````
 
-#### Thaanking psot question
+#### Thanking post question
 ```shell
 curl --location 'https://math-solver-coteach-production.up.railway.app/search_youtube_chat/' \
 --header 'Content-Type: application/json' \

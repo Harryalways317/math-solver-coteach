@@ -4,6 +4,7 @@ import requests
 from crewai import Agent
 
 from tools.search_tools import SearchTools
+from tools.youtube_search import YouTubeSearchTools
 
 
 class MathQuestionAnalysisAgent:
@@ -21,10 +22,9 @@ class YouTubeSearchAgent:
         """Agent dedicated to fetching YouTube video links based on search queries."""
         return Agent(
             role='YouTube Search Agent',
-            goal='To fetch relevant YouTube video links based on a provided search query.',
-            backstory='Expert in navigating digital content, this agent leverages search engine capabilities to sift through the web and pinpoint YouTube videos that best match the search criteria.',
-            # TODO - I'm Thinking to keep DDG Search, but still inclined to validate to send the search query directly to youtube API
-            tools=[SearchTools.search_internet],
+            goal='To fetch relevant YouTube video links based on a provided search query and the question. ',
+            backstory='Expert in navigating digital content, this agent leverages search engine capabilities to sift through the web and pinpoint YouTube videos that best match the search criteria. the param for function is query',
+            tools=[YouTubeSearchTools.search_youtube],
             verbose=True
         )
 

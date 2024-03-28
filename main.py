@@ -7,7 +7,9 @@ from dotenv import load_dotenv
 import requests
 import os
 import diskcache as dc
-from crew.math_analysis_crew import MathQuestionSearchCrew
+
+from agents.math_analysis_agent import YouTubeSearchAgent
+from crew.math_analysis_crew import MathQuestionSearchCrew, YouTubeSearchCrew
 from tools.vision_search import vision_api_request
 from utils.cache_utils import cache_response
 
@@ -58,6 +60,12 @@ def generate_search_query(math_question: str):
     search_query = math_search_crew.run()
     return search_query
 @cache_response()
+def fetch_yt_data(search_query: str,question:str):
+    yt_crew = YouTubeSearchCrew(search_query,question)
+    data = yt_crew.run()
+    print(f'yt data {data}')
+    return data
+@cache_response()
 def find_youtube_videos(math_question: str):
     math_search_crew = MathQuestionSearchCrew(math_question)
     search_query = math_search_crew.run()
@@ -73,6 +81,7 @@ def find_videos_to_the_question(math_question: str):
 class MathQuestion(BaseModel):
     question: str = ''
     image_url:str = ''
+    chat_id:str = ''
 
 @app.post("/search_youtube/")
 async def search_youtube_for_math_videos(math_question: MathQuestion):
@@ -90,6 +99,47 @@ async def search_youtube_for_math_videos(math_question: MathQuestion):
         return {"videos": videos,'question_videos':videos_for_question,'query':query,'question':math_question.question}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/search_youtube_chat/")
+async def search_youtube_for_math_videos(math_question: MathQuestion):
+    try:
+        history = []
+        if math_question.chat_id:
+            history = cache.get(math_question.chat_id, [])
+            print(f'History {history}')
+        if math_question.image_url:
+            math_question.question = vision_api_request(math_question.image_url)
+            print(f'vision api question {math_question.question}')
+
+        history.append({"user": math_question.question})
+        cache.set(key=math_question.chat_id,value=history)
+        query = generate_search_query(math_question.question)
+        print(f'Query {query}')
+        videos = find_videos_to_the_question(query)
+        videos_for_question = find_videos_to_the_question(math_question.question)
+        print(f'lenght of videos {len(videos)} and videos for question {len(videos_for_question)}')
+        if not videos and not videos_for_question:
+            raise HTTPException(status_code=404, detail="No videos found")
+        return {'response':"res","history":history}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# @app.post("/yt/")
+# async def search_youtube_for_math_videos(math_question: MathQuestion):
+#     try:
+#         if math_question.image_url:
+#             math_question.question = vision_api_request(math_question.image_url)
+#             print(f'vision api question {math_question.question}')
+#
+#         query = generate_search_query(math_question.question)
+#         print(f'Query {query}')
+#         videos = fetch_yt_data(query,math_question.question)
+#         print(f'videos {videos}')
+#         if not videos:
+#             raise HTTPException(status_code=404, detail="No videos found")
+#         return {"videos": videos,'query':query,'question':math_question.question}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn

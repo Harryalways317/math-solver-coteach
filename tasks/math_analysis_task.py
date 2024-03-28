@@ -1,6 +1,9 @@
 from textwrap import dedent
 from crewai import Task
 
+from models.video_detail import VideoDetail
+
+
 class MathQuestionSearchTask:
     def create_search_query_task(self, agent, math_question):
         print(f"Creating search query task for math question: {math_question}")
@@ -19,15 +22,22 @@ class MathQuestionSearchTask:
             verbose=True
         )
 class FetchYouTubeLinksTask:
-    def create_youtube_links_fetch_task(self, agent, search_query):
+    def create_youtube_links_fetch_task(self, agent, search_query,question):
+        query = {
+                "search_query": {search_query},
+                "question": {question},
+                }
         return Task(
             description=dedent(f"""
-                Objective: Fetch relevant YouTube video links based on the provided search query.
+                Objective: Fetch relevant YouTube video links based on the provided search query and direct question and get the relevant top 5 from retrived data
                 This involves utilizing search tools to query YouTube (or the internet for YouTube links) and extract URLs of videos that best match the search criteria.
-
-                Search Query: {search_query}
+                Input Data: 
+                ```json
+                {query}
+                ```
                 """),
             agent=agent,
             expected_output="A list of YouTube video links relevant to the search query.",
+            output_json=VideoDetail,
             verbose=True
         )

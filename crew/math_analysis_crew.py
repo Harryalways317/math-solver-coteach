@@ -22,10 +22,10 @@ class MathQuestionSearchCrew:
             return result
         return json.loads(result)
 class YouTubeSearchCrew:
-    def __init__(self, search_query):
+    def __init__(self, search_query,question):
         self.search_query = search_query
         self.agent = YouTubeSearchAgent().create_youtube_search_agent()
-        self.task = FetchYouTubeLinksTask().create_youtube_links_fetch_task(self.agent, search_query)
+        self.task = FetchYouTubeLinksTask().create_youtube_links_fetch_task(self.agent, search_query,question)
 
     def run(self):
         crew = Crew(
@@ -34,6 +34,7 @@ class YouTubeSearchCrew:
             verbose=True
         )
         result = crew.kickoff()
+        print(f'youtube search crew result {result}, type {type(result)}')
         if isinstance(result, dict):
             return result
         return json.loads(result)

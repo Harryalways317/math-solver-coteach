@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 import requests
 import os
 import diskcache as dc
+from starlette.responses import StreamingResponse
 
 from agents.math_analysis_agent import YouTubeSearchAgent
 from crew.math_analysis_crew import MathQuestionSearchCrew, YouTubeSearchCrew
@@ -142,12 +143,71 @@ async def generate_llm_response(context: str,history:str,videos:List) -> str:
             *gpt_history,
             {"role": "user", "content": f"{context}"},
             {"role": "user", "content": f"These are the relevant videos  regarding my question you can include in prompt {videos}"}
-        ]
+        ],
+        stream=False
     )
     print(f'response {response}')
 
     print(response.choices[0].message)
     return response.choices[0].message.content
+
+def generate_llm_response_streaming(context: str,history:str,videos:List) -> str:
+    print(history)
+    gpt_history = []
+    for entry in history:
+        if 'user' in entry:
+            gpt_history.append({"role": "user", "content": entry['user']})
+        if 'assistant' in entry:
+            gpt_history.append({"role": "assistant", "content": entry['assistant']})
+    print([
+            {"role": "system", "content": "You are a helpful math assistant."},
+            {"role": "user", "content": "I am struggling with an algebra question."},
+            {"role": "assistant", "content": """
+            Sure, what would you like me to help you with?
+            Here are some basic algebra videos that you consider watching to get better at it:
+
+            1. [Algebra Basics: What Is Algebra? - Math Antics](https://www.youtube.com/watch?v=NybHckSEQBI)
+            2. [Evaluate Expressions with Variables | Find the Value of an Expression](https://www.youtube.com/watch?v=DOKiZfX9ePk&list=PLiT3pCvK_cfVYLO03dJFgyv3D6-EhXEAU)
+            """},
+            *gpt_history,
+            {"role": "user", "content": f"{context}"},
+            {"role": "user", "content": f"These are the relevant videos {videos} regarding my question you can include in prompt"}
+        ])
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You are a helpful math assistant who returns relevant videos regarding the question in the order of most relavent first, but dont solve it.if you get an exact match then prioritize it first, if its a conversation question then handle accordingly"},
+            {"role": "user", "content": "I am struggling with an algebra question."},
+            {"role": "assistant", "content": """
+            Sure, what would you like me to help you with?
+            Here are some basic algebra videos that you consider watching to get better at it:
+
+            1. [Algebra Basics: What Is Algebra? - Math Antics](https://www.youtube.com/watch?v=NybHckSEQBI)
+            2. [Evaluate Expressions with Variables | Find the Value of an Expression](https://www.youtube.com/watch?v=DOKiZfX9ePk&list=PLiT3pCvK_cfVYLO03dJFgyv3D6-EhXEAU)
+            """},
+            {"role": "user", "content": "thanks for helping me with the videos"},
+            {"role": "assistant", "content": "You're welcome! Let me know if you have any other questions."},
+            *gpt_history,
+            {"role": "user", "content": f"{context}"},
+            {"role": "user", "content": f"These are the relevant videos  regarding my question you can include in prompt {videos}"}
+        ],
+        stream=True
+    )
+    print(f'response {response}')
+
+    for chunk in response:
+        print(chunk)
+        print(chunk.choices[0].delta.content)
+        print("****************")
+        if chunk.choices[0].delta.content:
+            yield chunk.choices[0].delta.content
+        if chunk.choices[0].delta.content is None:
+            return "done"
+
+
+    # print(response.response.json())
+    # yield response.response.json()
+
 
 
 async def handle_conversation(session_id,user_input,video_data):
@@ -163,6 +223,21 @@ async def handle_conversation(session_id,user_input,video_data):
     history = update_chat_history(session_id, assistant_response=llm_response)
 
     return llm_response,history
+
+def handle_conversation_streaming(session_id,user_input,video_data):
+    history = update_chat_history(session_id, user_input=user_input)
+
+    prompt = f"{user_input}"
+
+    # Generate the model's response
+    llm_response =  generate_llm_response_streaming(prompt, history, video_data)
+    print(f'LLM response Stream {llm_response}')
+
+    # # Update the chat history with the model's response
+    # history = update_chat_history(session_id, assistant_response=llm_response)
+
+    # return llm_response, history
+    return StreamingResponse(llm_response,media_type="text/event-stream")
 
 
 @app.post("/search_youtube/")
@@ -186,6 +261,7 @@ async def search_youtube_for_math_videos(math_question: MathQuestion):
 
 @app.post("/search_youtube_chat/")
 async def search_youtube_for_math_videos(math_question: MathQuestion):
+    stream = False
     try:
         history = []
         if math_question.chat_id:
@@ -209,6 +285,8 @@ async def search_youtube_for_math_videos(math_question: MathQuestion):
             if not videos and not videos_for_question:
                 raise HTTPException(status_code=404, detail="No videos found")
             res_videos = list(videos) + list(videos_for_question)
+        if stream:
+            return handle_conversation_streaming(math_question.chat_id,math_question.question,res_videos)
         res,history = await handle_conversation(math_question.chat_id,math_question.question,res_videos)
         return {'response': res,"history":history}
     except Exception as e:
